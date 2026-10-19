@@ -4,7 +4,7 @@
 
 Forkmap is a skill for the Claude app and Claude Code. Ask *"what other options did we skip?"* and it finds every point where Claude offered several directions and you only followed one, then draws them as a clickable tree: what each option was, whether you took it, parked it or ruled it out, and the exact words to find it again.
 
-![Forkmap demo](docs/demo.gif)
+![Forkmap demo](docs/forkmap-demo.gif)
 
 ## Why
 
@@ -92,10 +92,10 @@ forkmap/                  the skill, the folder you install
 └── assets/
     └── tree.html         the clickable tree template
 docs/
-├── demo.gif
+├── forkmap-demo.gif
 └── demo/
     ├── forkmap.json      data behind the demo
-    └── stage.html        split chat/map stage used to record demo.gif
+    └── stage.html        split chat/map stage used to record forkmap-demo.gif
 build.sh                  package the skill as dist/forkmap.zip
 ```
 
