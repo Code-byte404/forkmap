@@ -93,7 +93,9 @@ forkmap/                  the skill, the folder you install
     └── tree.html         the clickable tree template
 docs/
 ├── demo.gif
-└── demo/forkmap.json     data behind the demo
+└── demo/
+    ├── forkmap.json      data behind the demo
+    └── stage.html        split chat/map stage used to record demo.gif
 build.sh                  package the skill as dist/forkmap.zip
 ```
 
@@ -112,6 +114,8 @@ build.sh                  package the skill as dist/forkmap.zip
 ```
 
 To preview a map without Claude, run `python3 forkmap/scripts/render.py docs/demo/forkmap.json --open`. This also writes the HTML and Markdown into `docs/demo/`, which is gitignored.
+
+The demo GIF is recorded from `docs/demo/stage.html`: a generic chat on the left and the rendered map on the right. Render the demo map, serve `docs/demo/` over HTTP, and drive `window.stage` (`type`, `send`, `find`, `reset`, `cursor`) from a browser automation tool while taking screenshots.
 
 ## Contributing
 

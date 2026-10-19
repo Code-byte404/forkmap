@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forkmap demo stage</title>
+<!--
+  Stage for recording docs/demo.gif: a generic chat on the left, the rendered map on the right.
+  Render the map first (python3 forkmap/scripts/render.py docs/demo/forkmap.json), serve docs/demo/
+  over HTTP, and drive window.stage from a browser automation script.
+-->
+<style>
+:root{--bg:#1c1b19;--pane:#22211f;--fg:#ecebe7;--mu:#a3a09a;--ln:#3a3834;--bubble:#33312e;--hl:#e8c547}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.app{display:flex;height:100%}
+.chat{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;transition:flex-basis .3s}
+.split .chat{flex:0 0 560px;border-right:1px solid var(--ln)}
+.top{height:48px;display:flex;align-items:center;padding:0 22px;color:var(--mu);font-size:14px;border-bottom:1px solid var(--ln)}
+.log{flex:1;overflow:hidden;position:relative}
+.inner{max-width:640px;margin:0 auto;padding:20px 26px 40px;transition:transform .45s ease}
+.u{margin:18px 0 14px auto;max-width:82%;width:fit-content;background:var(--bubble);padding:9px 14px;border-radius:14px}
+.a{margin:0 0 6px}.a p{margin:0 0 10px}.a ol{margin:0 0 10px;padding-left:22px}.a li{margin-bottom:6px}
+.gap{text-align:center;color:var(--mu);font-size:13px;margin:16px 0}
+mark{background:var(--hl);color:#1c1b19;border-radius:3px;padding:0 1px}
+.card{display:flex;align-items:center;gap:12px;border:1px solid var(--ln);border-radius:10px;padding:10px 14px;margin:10px 0;background:var(--pane)}
+.card .ic{width:34px;height:34px;border-radius:8px;border:1px solid var(--ln);display:grid;place-items:center;color:var(--mu)}
+.card small{display:block;color:var(--mu);font-size:12px}
+.input{margin:0 22px 18px;border:1px solid var(--ln);border-radius:14px;padding:12px 16px;background:var(--pane);min-height:48px;color:var(--fg)}
+.input .ph{color:var(--mu)}
+.caret{display:inline-block;width:1px;height:17px;background:var(--fg);vertical-align:-3px;margin-left:1px}
+.top{position:relative}
+.find{position:absolute;top:8px;right:14px;background:#2c2b28;border:1px solid var(--ln);border-radius:8px;padding:6px 10px;font-size:13px;display:none;gap:10px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.find.on{display:flex}.find b{font-weight:500}.find span{color:var(--mu)}
+.map{flex:0 0 0;overflow:hidden;transition:flex-basis .3s;background:var(--bg)}
+.split .map{flex:1 1 auto}
+.map .bar{height:48px;display:flex;align-items:center;padding:0 18px;color:var(--mu);font-size:14px;border-bottom:1px solid var(--ln)}
+.map iframe{border:0;width:100%;height:calc(100% - 48px);display:block}
+.hidden{display:none}
+#cur{position:fixed;left:0;top:0;width:22px;height:22px;pointer-events:none;z-index:9;transition:transform .35s ease;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));display:none}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <section class="chat">
+    <div class="top">Habit tracker side project<div class="find" id="find">⌕ <b id="findq"></b><span>1 of 1</span></div></div>
+    <div class="log" id="log">
+      <div class="inner" id="inner">
+        <div class="u">I'm building a habit tracker as a side project. What should I build the backend with?</div>
+        <div class="a" id="t2">
+          <p>Here are four solid options for the data layer:</p>
+          <ol>
+            <li><strong>PostgreSQL.</strong> Postgres is the safe default for relational data, and streaks and check-ins are very relational.</li>
+            <li><strong>SQLite.</strong> SQLite is the fastest way to a working prototype: one file, zero setup, and it runs on the phone too.</li>
+            <li><strong>MongoDB.</strong> MongoDB if the habit schema keeps changing and you'd rather not write migrations.</li>
+            <li><strong>Supabase.</strong> Supabase gives you Postgres plus auth out of the box, hosted for you.</li>
+          </ol>
+        </div>
+        <div class="u">Not Mongo, streak queries need joins. Keep Supabase in mind if hosting gets annoying. Let's go with Postgres.</div>
+        <div class="a"><p>Good call. Here's a schema for habits, check-ins and reminders…</p></div>
+        <div class="u">Ok Postgres. Which ORM?</div>
+        <div class="a">
+          <p>Three ORMs fit well with Postgres and TypeScript:</p>
+          <ol>
+            <li><strong>Drizzle.</strong> Drizzle stays close to SQL and has a tiny runtime.</li>
+            <li><strong>Prisma.</strong> Prisma has the smoothest schema workflow, at the cost of a heavier client.</li>
+            <li><strong>Kysely.</strong> Kysely if you just want typed SQL without an ORM.</li>
+          </ol>
+        </div>
+        <div class="gap">· · ·</div>
+        <div class="u">How should I handle auth?</div>
+        <div class="a">
+          <p>You have three realistic paths for auth:</p>
+          <ol>
+            <li><strong>Magic links.</strong> Magic links keep signup to one field.</li>
+            <li><strong>OAuth.</strong> Google and Apple sign-in; Sign in with Apple is required on iOS if you offer other social logins.</li>
+            <li><strong>Email and password.</strong> Classic email and password is the most familiar, but you own resets.</li>
+          </ol>
+        </div>
+        <div class="gap">· · ·</div>
+        <div class="u">What should the landing page lead with?</div>
+        <div class="a">
+          <p>Pick one of these angles for the hero:</p>
+          <ol>
+            <li><strong>Streaks that forgive a missed day.</strong> No more starting from zero.</li>
+            <li><strong>Speed.</strong> Check in for the day in ten seconds.</li>
+            <li><strong>Privacy.</strong> Your habits never leave your account.</li>
+          </ol>
+        </div>
+        <div id="after" class="hidden">
+          <div class="u">what other options did we skip?</div>
+          <div class="a">
+            <div class="card"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4" cy="3" r="1.6"/><circle cx="4" cy="13" r="1.6"/><circle cx="12" cy="6" r="1.6"/><path d="M4 4.6v6.8M4 9c0-2 1.5-3 6.4-3"/></svg></div><div>Forkmap · Side project: habit tracker app<small>Interactive map</small></div></div>
+            <p>Scanned turns 1–14: 4 forks, 5 options not taken, and the 3 landing page angles are waiting for your pick. Click a node to copy its quote and find it with Cmd/Ctrl+F.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="input" id="input"><span class="ph">Reply…</span></div>
+  </section>
+  <section class="map">
+    <div class="bar">Forkmap · Side project: habit tracker app</div>
+    <iframe id="frame" src="about:blank" title="Forkmap"></iframe>
+  </section>
+</div>
+<svg id="cur" viewBox="0 0 22 22"><path d="M3 2l14 8.2-6.1 1.3 3.6 6.9-2.6 1.3-3.6-6.9L3.8 17z" fill="#fff" stroke="#111" stroke-width="1.2" stroke-linejoin="round"/></svg>
+<script>
+const $=id=>document.getElementById(id);
+const log=$("log"),inner=$("inner");
+// Keep the log pinned to its bottom, or to a given element, by translating the inner column.
+function scrollTo(el){
+  const max=Math.max(0,inner.scrollHeight-log.clientHeight);
+  const y=el?Math.min(max,Math.max(0,el.offsetTop-150)):max;
+  inner.style.transform=`translateY(${-y}px)`;
+}
+window.stage={
+  bottom(){scrollTo(null)},
+  type(text){$("input").innerHTML=text?`${text}<span class="caret"></span>`:'<span class="ph">Reply…</span>'},
+  send(){
+    $("after").classList.remove("hidden");this.type("");
+    $("app").classList.add("split");$("frame").src="forkmap.html";
+    setTimeout(()=>scrollTo(null),350);
+  },
+  find(q){
+    for(const m of inner.querySelectorAll("mark"))m.replaceWith(...m.childNodes);
+    $("findq").textContent=q.length>34?q.slice(0,33)+"…":q;$("find").classList.add("on");
+    const walker=document.createTreeWalker(inner,NodeFilter.SHOW_TEXT);let n;
+    while((n=walker.nextNode())){
+      const i=n.data.indexOf(q);if(i<0)continue;
+      const r=document.createRange();r.setStart(n,i);r.setEnd(n,i+q.length);
+      const m=document.createElement("mark");r.surroundContents(m);scrollTo(m.closest("li,p,.u")||m);return true;
+    }
+    return false;
+  },
+  closeFind(){$("find").classList.remove("on")},
+  reset(){this.closeFind();for(const m of inner.querySelectorAll("mark"))m.replaceWith(...m.childNodes);scrollTo(null)},
+  cursor(x,y){const c=$("cur");c.style.display="block";c.style.transform=`translate(${x-3}px,${y-2}px)`},
+  hideScrollbar(){try{const d=$("frame").contentDocument;const s=d.createElement("style");s.textContent="html{overflow:hidden}";d.head.appendChild(s)}catch(e){}}
+};
+window.addEventListener("load",()=>stage.bottom());
+</script>
+</body>
+</html>

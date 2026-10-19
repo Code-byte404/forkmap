@@ -17,6 +17,8 @@ h1{font-size:19px;margin:0 0 4px}
 .chip{border:1px solid var(--ln);background:var(--card);color:var(--fg);border-radius:999px;padding:3px 11px;font-size:13px;cursor:pointer}
 .chip.on{border-color:var(--fg)}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px;flex:none}
+.node .dot{margin-top:7px}.node .caret{line-height:23px}
+.name .tag{display:inline-block;margin-left:6px}
 .lay{display:grid;gap:16px}
 @media (min-width:760px){.lay{grid-template-columns:minmax(0,1fr) 300px}.panel{position:sticky;top:16px;align-self:start}}
 ul{list-style:none;margin:0;padding-left:20px}#tree{padding-left:0}
@@ -24,7 +26,7 @@ ul ul li{position:relative}
 ul ul li::before{content:"";position:absolute;left:-13px;top:0;bottom:0;border-left:1px solid var(--ln)}
 ul ul li:last-child::before{bottom:auto;height:16px}
 ul ul li::after{content:"";position:absolute;left:-13px;top:16px;width:10px;border-top:1px solid var(--ln)}
-.node{display:inline-flex;align-items:center;gap:6px;margin:3px 0;padding:3px 9px;border-radius:7px;cursor:pointer;border:1px solid transparent;max-width:100%}
+.node{display:inline-flex;align-items:flex-start;gap:6px;margin:3px 0;padding:3px 9px;border-radius:7px;cursor:pointer;border:1px solid transparent;max-width:100%}
 .node:hover{background:var(--hl)}.node.sel{border-color:var(--fg);background:var(--hl)}
 .dot.pending{border:1.5px solid var(--mu)}.pending .name{color:var(--mu)}
 .fork{font-weight:600}.caret{width:12px;color:var(--mu);font-size:11px}
@@ -82,11 +84,11 @@ function forkLi(f){
   const li=document.createElement("li"),fold=!f.pending&&!hasOpen(f);
   li.className="fk"+(fold?" fold":"");
   const tag=[turnLbl(f.turn),multi>1&&SS[f.session]?esc(SS[f.session].date||""):"",f.pending?T("wait"):""].filter(Boolean).join(" · ");
-  li.innerHTML=`<span class="node fork" data-fork="${esc(f.id)}"><span class="caret">${fold?"▸":"▾"}</span>#${esc(f.id)} ${esc(f.title)} <span class="tag">· ${tag}</span></span>`;
+  li.innerHTML=`<span class="node fork" data-fork="${esc(f.id)}"><span class="caret">${fold?"▸":"▾"}</span><span class="name">#${esc(f.id)} ${esc(f.title)}<span class="tag">· ${tag}</span></span></span>`;
   const ul=document.createElement("ul");
   for(const o of f.options){
     const id=`${f.id}-${o.key}`,oli=document.createElement("li");oli.dataset.s=o.status;
-    oli.innerHTML=`<span class="node ${o.status}" data-opt="${esc(id)}">${dot(o.status)}<span class="name">${esc(o.key)}. ${esc(o.name)}</span><span class="tag">${T(o.status)}</span></span>`;
+    oli.innerHTML=`<span class="node ${o.status}" data-opt="${esc(id)}">${dot(o.status)}<span class="name">${esc(o.key)}. ${esc(o.name)}<span class="tag">${T(o.status)}</span></span></span>`;
     const kids=F.filter(c=>c.parent===id);
     if(kids.length){const k=document.createElement("ul");kids.forEach(c=>k.appendChild(forkLi(c)));oli.appendChild(k);}
     ul.appendChild(oli);
@@ -94,7 +96,7 @@ function forkLi(f){
   li.appendChild(ul);return li;
 }
 const tree=document.getElementById("tree"),root=document.createElement("li"),rul=document.createElement("ul");
-root.innerHTML=`<span class="node fork"><span class="caret">●</span>${esc(D.topic||D.title||"")}</span>`;
+root.innerHTML=`<span class="node fork"><span class="caret">●</span><span class="name">${esc(D.topic||D.title||"")}</span></span>`;
 F.filter(f=>!f.parent||!O.some(o=>o.id===f.parent)).forEach(f=>rul.appendChild(forkLi(f)));
 root.appendChild(rul);tree.appendChild(root);
 
