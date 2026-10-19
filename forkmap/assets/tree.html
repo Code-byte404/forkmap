@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forkmap</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1f1e1c;--mu:#6b6863;--ln:#d9d5cc;--card:#fff;--hl:#f1ede4;--active:#2f9e5b;--parked:#c98a00;--rejected:#9a9893;--later:#2f7fc1;--pending:transparent}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1b19;--fg:#ecebe7;--mu:#a3a09a;--ln:#3d3b37;--card:#262522;--hl:#34322e;--rejected:#77756f}}
+:root[data-theme="dark"]{--bg:#1c1b19;--fg:#ecebe7;--mu:#a3a09a;--ln:#3d3b37;--card:#262522;--hl:#34322e;--rejected:#77756f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans","Noto Sans CJK SC","Segoe UI",sans-serif;padding:20px 16px}
+h1{font-size:19px;margin:0 0 4px}
+.sub,.row,.tag,.hint{color:var(--mu)}.sub,.row{font-size:13px}.tag,.hint{font-size:12px}
+.sub{margin-bottom:12px}.row{margin:4px 0}.hint{margin-top:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.chip{border:1px solid var(--ln);background:var(--card);color:var(--fg);border-radius:999px;padding:3px 11px;font-size:13px;cursor:pointer}
+.chip.on{border-color:var(--fg)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px;flex:none}
+.lay{display:grid;gap:16px}
+@media (min-width:760px){.lay{grid-template-columns:minmax(0,1fr) 300px}.panel{position:sticky;top:16px;align-self:start}}
+ul{list-style:none;margin:0;padding-left:20px}#tree{padding-left:0}
+ul ul li{position:relative}
+ul ul li::before{content:"";position:absolute;left:-13px;top:0;bottom:0;border-left:1px solid var(--ln)}
+ul ul li:last-child::before{bottom:auto;height:16px}
+ul ul li::after{content:"";position:absolute;left:-13px;top:16px;width:10px;border-top:1px solid var(--ln)}
+.node{display:inline-flex;align-items:center;gap:6px;margin:3px 0;padding:3px 9px;border-radius:7px;cursor:pointer;border:1px solid transparent;max-width:100%}
+.node:hover{background:var(--hl)}.node.sel{border-color:var(--fg);background:var(--hl)}
+.dot.pending{border:1.5px solid var(--mu)}.pending .name{color:var(--mu)}
+.fork{font-weight:600}.caret{width:12px;color:var(--mu);font-size:11px}
+.rejected .name{text-decoration:line-through;color:var(--mu)}
+.fold>ul,.hide{display:none}
+.panel{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:14px 16px}
+.panel h2{font-size:16px;margin:0 0 8px}
+.said{font-size:13px;margin:8px 0;color:var(--mu)}
+.q{border-left:3px solid var(--ln);padding:6px 10px;margin:10px 0;background:var(--hl);border-radius:0 6px 6px 0;font-size:14px}
+.btn{display:block;width:100%;margin-top:8px;padding:7px;border-radius:7px;border:1px solid var(--ln);background:var(--bg);color:var(--fg);cursor:pointer;font-size:13px}
+.btn:hover{border-color:var(--fg)}
+.box{width:100%;margin-top:6px;padding:5px;font-size:12px;border:1px solid var(--ln);border-radius:6px;background:var(--bg);color:var(--fg)}
+</style>
+</head>
+<body>
+<script id="forkmap-data" type="application/json">__FORKMAP_DATA__</script>
+<h1 id="title"></h1><div class="sub" id="sub"></div><div class="chips" id="chips"></div>
+<div class="lay"><ul id="tree"></ul><div class="panel" id="panel"></div></div>
+<script>
+const D=JSON.parse(document.getElementById("forkmap-data").textContent);
+// English defaults. D.ui may override any key with a translated string; {name} placeholders are filled in.
+const plural=(n,one,many)=>`${n} ${n===1?one:many}`;
+const DEF={active:"Active",parked:"Parked",rejected:"Rejected",later:"Later",pending:"Pending",
+  turn:"Turn {n}",all:"All",open:"Not taken",you:"You said",from:"from",wait:"waiting for your pick",
+  scan:"Scanned turns {a}–{b}",nsess:v=>plural(v.n,"session","sessions"),nforks:v=>plural(v.n,"fork","forks"),
+  nopen:v=>plural(v.n,"option","options")+" not taken",npend:"{n} waiting for your pick",
+  pick:"Click any node to see the quote and next steps.",
+  find:"Copy quote, then Cmd/Ctrl+F in chat",cont:"Copy prompt to continue this option",send:"Continue this option in chat",
+  ok:"Copied",manual:"Copy blocked, select and copy:",exp:"Expand #{id} {name}",
+  sess:"Session",resume:"Copy command to reopen this session",
+  hint:"The chat has no per-message links. Paste the quote into Cmd/Ctrl+F to find that turn.",
+  hintCC:"Run the command in a terminal to reopen that session, then search for the quote.",
+  lq:"“",rq:"”",col:": "};
+const U=D.ui||{};
+const T=(k,v={})=>{const s=U[k]??DEF[k];return typeof s==="function"?s(v):String(s).replace(/\{(\w+)\}/g,(_,x)=>v[x]??"");};
+const STATUS=["active","parked","rejected","later","pending"];
+const dot=s=>`<span class="dot ${s}" style="background:var(--${s})"></span>`;
+const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isOpen=s=>s==="parked"||s==="later";
+const F=D.forks||[],O=F.flatMap(f=>f.options.map(o=>({...o,f,id:`${f.id}-${o.key}`})));
+const SS=D.sessions||null,multi=SS?Object.keys(SS).length:0;
+const turnLbl=n=>T("turn",{n});
+const said=(n,t)=>(t=t||(D.turns&&D.turns[n]))?`<div class="said">${turnLbl(n)} · ${T("you")}${T("col")}${T("lq")}${esc(t)}${T("rq")}</div>`:`<div class="row">${turnLbl(n)}</div>`;
+const sessRow=f=>SS&&SS[f.session]?`<div class="row">${T("sess")}${T("col")}${esc(SS[f.session].title||f.session.slice(0,8))} · ${esc(SS[f.session].date||"")}</div>`:"";
+const openN=O.filter(o=>isOpen(o.status)).length,pendN=O.filter(o=>o.status==="pending").length;
+document.documentElement.lang=D.lang||"en";
+document.title=document.getElementById("title").textContent=D.title||"Forkmap";
+document.getElementById("sub").textContent=[
+  SS?T("nsess",{n:multi}):D.scanned?T("scan",{a:D.scanned[0],b:D.scanned[1]}):"",
+  T("nforks",{n:F.length}),T("nopen",{n:openN}),pendN?T("npend",{n:pendN}):""].filter(Boolean).join(" · ");
+
+// Collapse forks whose subtree has nothing left untaken or pending
+const hasOpen=f=>f.options.some(o=>isOpen(o.status)||F.some(c=>c.parent===`${f.id}-${o.key}`&&hasOpen(c)));
+function forkLi(f){
+  const li=document.createElement("li"),fold=!f.pending&&!hasOpen(f);
+  li.className="fk"+(fold?" fold":"");
+  const tag=[turnLbl(f.turn),multi>1&&SS[f.session]?esc(SS[f.session].date||""):"",f.pending?T("wait"):""].filter(Boolean).join(" · ");
+  li.innerHTML=`<span class="node fork" data-fork="${esc(f.id)}"><span class="caret">${fold?"▸":"▾"}</span>#${esc(f.id)} ${esc(f.title)} <span class="tag">· ${tag}</span></span>`;
+  const ul=document.createElement("ul");
+  for(const o of f.options){
+    const id=`${f.id}-${o.key}`,oli=document.createElement("li");oli.dataset.s=o.status;
+    oli.innerHTML=`<span class="node ${o.status}" data-opt="${esc(id)}">${dot(o.status)}<span class="name">${esc(o.key)}. ${esc(o.name)}</span><span class="tag">${T(o.status)}</span></span>`;
+    const kids=F.filter(c=>c.parent===id);
+    if(kids.length){const k=document.createElement("ul");kids.forEach(c=>k.appendChild(forkLi(c)));oli.appendChild(k);}
+    ul.appendChild(oli);
+  }
+  li.appendChild(ul);return li;
+}
+const tree=document.getElementById("tree"),root=document.createElement("li"),rul=document.createElement("ul");
+root.innerHTML=`<span class="node fork"><span class="caret">●</span>${esc(D.topic||D.title||"")}</span>`;
+F.filter(f=>!f.parent||!O.some(o=>o.id===f.parent)).forEach(f=>rul.appendChild(forkLi(f)));
+root.appendChild(rul);tree.appendChild(root);
+
+let flt=null;
+const match=s=>!flt||(flt==="open"?isOpen(s):s===flt);
+const chips=document.getElementById("chips");
+function drawChips(){
+  const c=(k,label,n)=>`<button class="chip ${flt===k?"on":""}" data-k="${k??""}">${label} ${n}</button>`;
+  chips.innerHTML=c(null,T("all"),O.length)+c("open",T("open"),openN)+STATUS.filter(s=>s!=="pending"||pendN).map(s=>c(s,dot(s)+T(s),O.filter(o=>o.status===s).length)).join("");
+}
+function applyFlt(){
+  [...tree.querySelectorAll("li[data-s]")].reverse().forEach(li=>{
+    const keep=match(li.dataset.s)||[...li.querySelectorAll(":scope>ul>li.fk")].some(x=>!x.classList.contains("hide"));
+    li.classList.toggle("hide",!keep);
+    const fk=li.parentElement.parentElement;
+    if(fk.classList.contains("fk"))fk.classList.toggle("hide",![...fk.querySelectorAll(":scope>ul>li[data-s]")].some(x=>match(x.dataset.s)||x.querySelector("li.fk:not(.hide)")));
+  });
+  if(flt)tree.querySelectorAll("li.fk:not(.hide).fold").forEach(fk=>{fk.classList.remove("fold");fk.querySelector(".caret").textContent="▾";});
+}
+chips.onclick=e=>{const b=e.target.closest(".chip");if(!b)return;flt=b.dataset.k||null;drawChips();applyFlt();};
+
+// Send straight to the chat if the host provides sendPrompt; otherwise copy
+const canSend=typeof window.sendPrompt==="function";
+async function copy(text,btn){
+  try{await navigator.clipboard.writeText(text);const t=btn.textContent;btn.textContent=T("ok");setTimeout(()=>btn.textContent=t,1200);}
+  catch(e){const box=btn.nextElementSibling;box.classList.remove("hide");btn.textContent=T("manual");box.value=text;box.select();}
+}
+const panel=document.getElementById("panel");
+function show(head,quote,prompt,f){
+  const cmd=f&&SS&&f.session?(D.project?`cd "${D.project}" && `:"")+`claude --resume ${f.session}`:null;
+  panel.innerHTML=head+(quote?`<div class="q">${T("lq")}${esc(quote)}${T("rq")}</div><button class="btn" id="b1">${T("find")}</button><input class="box hide" readonly>`:"")
+    +(prompt?`<button class="btn" id="b2">${canSend?T("send"):T("cont")}</button><input class="box hide" readonly>`:"")
+    +(cmd?`<button class="btn" id="b3">${T("resume")}</button><input class="box hide" readonly>`:"")+`<div class="hint">${cmd?T("hintCC"):T("hint")}</div>`;
+  const b1=document.getElementById("b1"),b2=document.getElementById("b2"),b3=document.getElementById("b3");
+  if(b1)b1.onclick=()=>copy(quote,b1);
+  if(b2)b2.onclick=()=>{if(canSend){try{window.sendPrompt(prompt);return;}catch(e){}}copy(prompt,b2);};
+  if(b3)b3.onclick=()=>copy(cmd,b3);
+}
+panel.innerHTML=`<div class="row">${T("pick")}</div>`;
+tree.onclick=e=>{
+  const n=e.target.closest(".node");if(!n)return;
+  if(e.target.classList.contains("caret")&&n.dataset.fork){const li=n.parentElement;li.classList.toggle("fold");e.target.textContent=li.classList.contains("fold")?"▸":"▾";return;}
+  tree.querySelectorAll(".sel").forEach(x=>x.classList.remove("sel"));n.classList.add("sel");
+  if(n.dataset.opt){
+    const o=O.find(x=>x.id===n.dataset.opt);
+    show(`<h2>${dot(o.status)}#${esc(o.id)} ${esc(o.name)}</h2><div class="row">${T(o.status)}</div>${sessRow(o.f)}${said(o.turn,o.said||(o.turn===o.f.turn?o.f.said:null))}<div>${esc(o.summary)}</div>`,o.quote,o.status==="active"?null:T("exp",{id:o.id,name:o.name}),o.f);
+  }else if(n.dataset.fork){
+    const f=F.find(x=>x.id===n.dataset.fork);
+    show(`<h2>#${esc(f.id)} ${esc(f.title)}</h2>${f.parent?`<div class="row">${T("from")} #${esc(f.parent)}</div>`:""}${sessRow(f)}${said(f.turn,f.said)}${f.summary?`<div>${esc(f.summary)}</div>`:""}`,f.quote,null,f);
+  }
+};
+drawChips();applyFlt();
+</script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+{
+  "title": "Forkmap · Side project: habit tracker app",
+  "topic": "Side project: habit tracker app",
+  "lang": "en",
+  "scanned": [
+    1,
+    14
+  ],
+  "turns": {
+    "2": "What should I build the backend with",
+    "5": "Ok Postgres. Which ORM?",
+    "9": "How should I handle auth",
+    "14": "What should the landing page lead with"
+  },
+  "forks": [
+    {
+      "id": "1",
+      "title": "Backend database",
+      "turn": 2,
+      "parent": null,
+      "summary": "Picking storage for habits, streaks and reminders",
+      "quote": "Here are four solid options for the data layer",
+      "options": [
+        {
+          "key": "A",
+          "name": "PostgreSQL",
+          "status": "active",
+          "turn": 2,
+          "summary": "Adopted; schema for habits and check-ins is done",
+          "quote": "Postgres is the safe default for relational data"
+        },
+        {
+          "key": "B",
+          "name": "SQLite",
+          "status": "parked",
+          "turn": 2,
+          "summary": "Simplest for a local-first prototype or an offline mobile build",
+          "quote": "SQLite is the fastest way to a working prototype"
+        },
+        {
+          "key": "C",
+          "name": "MongoDB",
+          "status": "rejected",
+          "turn": 2,
+          "summary": "Turn 3: you ruled it out, streak queries need joins",
+          "quote": "MongoDB if the habit schema keeps changing"
+        },
+        {
+          "key": "D",
+          "name": "Supabase",
+          "status": "later",
+          "turn": 2,
+          "summary": "Turn 4: you want to revisit it if hosting gets annoying",
+          "quote": "Supabase gives you Postgres plus auth out of the box"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "ORM",
+      "turn": 5,
+      "parent": "1-A",
+      "quote": "Three ORMs fit well with Postgres and TypeScript",
+      "options": [
+        {
+          "key": "A",
+          "name": "Drizzle",
+          "status": "active",
+          "turn": 5,
+          "summary": "Adopted; migrations set up",
+          "quote": "Drizzle stays close to SQL"
+        },
+        {
+          "key": "B",
+          "name": "Prisma",
+          "status": "parked",
+          "turn": 5,
+          "summary": "Nicer schema DX, heavier runtime",
+          "quote": "Prisma has the smoothest schema workflow"
+        },
+        {
+          "key": "C",
+          "name": "Kysely",
+          "status": "parked",
+          "turn": 5,
+          "summary": "Type-safe query builder if you want no ORM at all",
+          "quote": "Kysely if you just want typed SQL"
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Authentication",
+      "turn": 9,
+      "parent": null,
+      "quote": "You have three realistic paths for auth",
+      "options": [
+        {
+          "key": "A",
+          "name": "Magic links",
+          "status": "active",
+          "turn": 9,
+          "summary": "Adopted; no passwords to store",
+          "quote": "Magic links keep signup to one field"
+        },
+        {
+          "key": "B",
+          "name": "OAuth with Google and Apple",
+          "status": "later",
+          "turn": 9,
+          "summary": "Turn 10: add once the mobile app ships",
+          "quote": "Sign in with Apple is required on iOS"
+        },
+        {
+          "key": "C",
+          "name": "Email and password",
+          "status": "rejected",
+          "turn": 9,
+          "summary": "Turn 10: you don't want to handle resets",
+          "quote": "Classic email and password is the most familiar"
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Landing page angle",
+      "turn": 14,
+      "parent": null,
+      "pending": true,
+      "quote": "Pick one of these angles for the hero",
+      "options": [
+        {
+          "key": "A",
+          "name": "Streaks that forgive missed days",
+          "status": "pending",
+          "turn": 14,
+          "summary": "Lead with the gentler streak mechanic",
+          "quote": "Streaks that forgive a missed day"
+        },
+        {
+          "key": "B",
+          "name": "Ten-second daily check-in",
+          "status": "pending",
+          "turn": 14,
+          "summary": "Lead with speed",
+          "quote": "Check in for the day in ten seconds"
+        },
+        {
+          "key": "C",
+          "name": "Private by default",
+          "status": "pending",
+          "turn": 14,
+          "summary": "Lead with privacy",
+          "quote": "Your habits never leave your account"
+        }
+      ]
+    }
+  ],
+  "updated": "2026-10-19 22:04"
+}
